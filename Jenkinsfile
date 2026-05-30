@@ -23,7 +23,7 @@ pipeline {
 
     stage('Checkout Code') {
       steps {
-        git url: 'https://github.com/atulyw/cdec-b49.git', branch: 'terraform-v2'
+        git url: 'https://github.com/rohitarame/jenkins-pipeline.git', branch: 'terraform-v2'
       }
     }
 
