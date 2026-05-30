@@ -1,6 +1,13 @@
 pipeline {
   agent {
-    label 'docker'
+    label 'terraform'
+  }
+  parameters {
+    choice(
+      name: 'ENVIRONMENT',
+      choices: ['dev', 'test', 'prod'],
+      description: 'Terraform environment folder under terraform/environments/'
+    )
   }
 
   options {
@@ -9,23 +16,23 @@ pipeline {
   }
 
   environment {
-    TF_DIR = "terraform/environments/dev"
+    TF_DIR = "terraform/environments/${params.ENVIRONMENT}"
   }
 
   stages {
 
     stage('Checkout Code') {
       steps {
-        git url: 'https://github.com/rohitarame/jenkins-pipeline.git', branch: 'terraform-v2'
+        git url: 'https://github.com/atulyw/cdec-b49.git', branch: 'terraform-v2'
       }
     }
 
     stage('Terraform Version') {
       steps {
         withCredentials([[
-          $class: 'AmazonWebServicesCredentialsBinding',
-          credentialsId: 'aws-credentials',
-          accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+          $class: 'AmazonWebServicesCredentialsBinding', 
+          credentialsId: 'aws-credentials', 
+          accessKeyVariable: 'AWS_ACCESS_KEY_ID', 
           secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
         ]]) {
           sh 'terraform version'
@@ -39,9 +46,9 @@ pipeline {
       steps {
         dir("${env.TF_DIR}") {
           withCredentials([[
-            $class: 'AmazonWebServicesCredentialsBinding',
-            credentialsId: 'aws-credentials',
-            accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+            $class: 'AmazonWebServicesCredentialsBinding', 
+            credentialsId: 'aws-credentials', 
+            accessKeyVariable: 'AWS_ACCESS_KEY_ID', 
             secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
           ]]) {
             sh 'terraform init -input=false'
@@ -54,9 +61,9 @@ pipeline {
       steps {
         dir("${env.TF_DIR}") {
           withCredentials([[
-            $class: 'AmazonWebServicesCredentialsBinding',
-            credentialsId: 'aws-credentials',
-            accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+            $class: 'AmazonWebServicesCredentialsBinding', 
+            credentialsId: 'aws-credentials', 
+            accessKeyVariable: 'AWS_ACCESS_KEY_ID', 
             secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
           ]]) {
             sh 'terraform plan -input=false -out=tfplan'
@@ -67,7 +74,7 @@ pipeline {
 
     stage('Manual Approval') {
       steps {
-        input message: "Review the Terraform Plan log above. Apply to dev?", ok: 'Apply'
+        input message: "Review the Terraform Plan log above. Apply to ${params.ENVIRONMENT}?", ok: 'Apply'
       }
     }
 
@@ -75,9 +82,9 @@ pipeline {
       steps {
         dir("${env.TF_DIR}") {
           withCredentials([[
-            $class: 'AmazonWebServicesCredentialsBinding',
-            credentialsId: 'aws-credentials',
-            accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+            $class: 'AmazonWebServicesCredentialsBinding', 
+            credentialsId: 'aws-credentials', 
+            accessKeyVariable: 'AWS_ACCESS_KEY_ID', 
             secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
           ]]) {
             sh 'terraform apply -input=false -auto-approve tfplan'
@@ -89,14 +96,12 @@ pipeline {
 
   post {
     success {
-      echo "SUCCESS: dev infrastructure deployed from branch terraform-v2."
-      echo "Next: aws eks update-kubeconfig --region eu-north-1 --name cdec-dev-eks"
+      echo "SUCCESS: ${params.ENVIRONMENT} infrastructure deployed from branch terraform-v2."
+      echo "Next: aws eks update-kubeconfig --region ap-south-1 --name cdec-${params.ENVIRONMENT}-eks"
     }
-
     failure {
       echo 'FAILURE: Pipeline failed. Check the failed stage log.'
     }
-
     always {
       echo 'Build finished. Cleaning workspace...'
       deleteDir()
