@@ -90,7 +90,7 @@ pipeline {
   post {
     success {
       echo "SUCCESS: dev infrastructure deployed from branch terraform-v2."
-      echo "Next: aws eks update-kubeconfig --region ap-south-1 --name cdec-dev-eks"
+      echo "Next: aws eks update-kubeconfig --region eu-north-1 --name cdec-dev-eks"
     }
 
     failure {
